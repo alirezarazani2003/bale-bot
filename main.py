@@ -100,7 +100,7 @@ def forward_to_channels(message, chat_id):
 
 def is_rate_limited(chat_id):
     now = time.time()
-    if now - USER_LAST_REQUEST[chat_id] < 5:
+    if now - USER_LAST_REQUEST[chat_id] < int(os.getenv('RATE_LIMIT')):
         return True
     USER_LAST_REQUEST[chat_id] = now
     return False
