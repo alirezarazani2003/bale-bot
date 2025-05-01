@@ -189,3 +189,15 @@ def handle_update(update):
 
     else:
         send_message(chat_id, "❓ لطفاً یکی از گزینه‌های منو رو انتخاب کن.", keyboard=build_main_menu())
+
+
+def get_updates(offset=None):
+    url = f"https://tapi.bale.ai/bot{BOT_TOKEN}/getUpdates"
+    payload = {"timeout": 10}
+    if offset:
+        payload["offset"] = offset
+    try:
+        response = requests.post(url, json=payload)
+        return response.json()
+    except:
+        return {}
