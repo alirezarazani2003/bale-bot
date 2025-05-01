@@ -24,3 +24,15 @@ def save_channels(chat_id, channels):
     user_channels_file = f'{chat_id}_channels.json'
     with open(user_channels_file, 'w') as f:
         json.dump(channels, f)
+        
+def send_bale_request(method, data, files=None):
+    url = f"https://tapi.bale.ai/bot{BOT_TOKEN}/{method}"
+    if files:
+        response = requests.post(url, data=data, files=files)
+    else:
+        response = requests.post(url, json=data)
+    try:
+        return response.json()
+    except Exception:
+        return {"ok": False, "description": "Invalid response"}
+
