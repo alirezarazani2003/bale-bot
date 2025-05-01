@@ -36,3 +36,16 @@ def send_bale_request(method, data, files=None):
     except Exception:
         return {"ok": False, "description": "Invalid response"}
 
+
+def build_main_menu():
+    return {
+        "keyboard": [
+            [{"text": "✉️ ارسال پیام به کانال‌ها"}],
+            [{"text": "➕ اضافه کردن کانال"}],
+            [{"text": "➖ حذف کانال"}],
+            [{"text": "📜 دیدن لیست کانال‌ها"}],
+            [{"text": "🔙 بازگشت به منوی اصلی"}]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
