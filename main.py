@@ -39,6 +39,14 @@ def send_bale_request(method, data, files=None):
     except Exception:
         return {"ok": False, "description": "Invalid response"}
 
+def send_message(chat_id, text, keyboard=None):
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+    }
+    if keyboard:
+        payload["reply_markup"] = keyboard
+    send_bale_request("sendMessage", payload)
 
 def build_main_menu():
     return {
@@ -96,3 +104,88 @@ def is_rate_limited(chat_id):
         return True
     USER_LAST_REQUEST[chat_id] = now
     return False
+
+
+def handle_update(update):
+    message = update.get('message', {})
+    chat_id = message.get('chat', {}).get('id')
+    text = message.get('text', '')
+
+    if not chat_id or message.get('from', {}).get('is_bot') or message.get('chat', {}).get('type') != 'private':
+        return
+
+    if ALLOWED_USERS and chat_id not in ALLOWED_USERS:
+        send_message(chat_id, "⛔ شما مجاز به استفاده از این ربات نیستید.")
+        return
+
+    if is_rate_limited(chat_id):
+        send_message(chat_id, "⏱ لطفاً چند لحظه صبر کنید و دوباره تلاش کنید.")
+        return
+
+    state = USER_STATE.get(chat_id)
+
+    if text == '/start' or text == '🔙 بازگشت به منوی اصلی':
+        send_message(chat_id, "👋 خوش اومدی! یکی از گزینه‌های زیر رو انتخاب کن:", keyboard=build_main_menu())
+        USER_STATE[chat_id] = None
+
+    elif text == "✉️ ارسال پیام به کانال‌ها":
+        send_message(chat_id, "📝 لطفاً پیام یا محتوایی که می‌خوای به کانال‌ها بفرستی رو بفرست:")
+        USER_STATE[chat_id] = 'waiting_for_message'
+
+    elif text == "➕ اضافه کردن کانال":
+        send_message(chat_id, "📥 لطفاً آیدی کانال (مثل @mychannel) رو بفرست:")
+        USER_STATE[chat_id] = 'waiting_for_channel'
+
+    elif text == "➖ حذف کانال":
+        send_message(chat_id, "🗑 آیدی کانالی که می‌خوای حذف بشه رو بفرست:")
+        USER_STATE[chat_id] = 'removing_channel'
+
+    elif text == "📜 دیدن لیست کانال‌ها":
+        channels = load_channels(chat_id)
+        channels_text = '\n'.join(channels) if channels else '❌ هنوز کانالی اضافه نکردی'
+        send_message(chat_id, f"🔹 لیست کانال‌ها:\n{channels_text}")
+
+    elif state == 'waiting_for_message':
+        channels = load_channels(chat_id)
+        if not channels:
+            send_message(chat_id, "❌ هنوز کانالی اضافه نکردی. اول کانال اضافه کن.", keyboard=build_main_menu())
+            USER_STATE[chat_id] = None
+            return
+
+        success, failed = forward_to_channels(message, chat_id)
+        result_text = ""
+        if success:
+            result_text += "✅ پیام با موفقیت به این کانال‌ها ارسال شد:\n" + "\n".join(success)
+        if failed:
+            if result_text:
+                result_text += "\n\n"
+            result_text += "⚠️ خطا در ارسال به این کانال‌ها:\n" + "\n".join(failed)
+
+        send_message(chat_id, result_text, keyboard=build_main_menu())
+        USER_STATE[chat_id] = None
+
+    elif state == 'waiting_for_channel':
+        if is_valid_channel_id(text):
+            channels = load_channels(chat_id)
+            if text not in channels:
+                channels.append(text)
+                save_channels(chat_id, channels)
+                send_message(chat_id, f"✅ کانال {text} اضافه شد.", keyboard=build_main_menu())
+            else:
+                send_message(chat_id, "ℹ️ این کانال قبلاً اضافه شده.", keyboard=build_main_menu())
+        else:
+            send_message(chat_id, "❌ آیدی معتبر نیست. باید با @ و حداقل ۵ حرف باشد.")
+        USER_STATE[chat_id] = None
+
+    elif state == 'removing_channel':
+        channels = load_channels(chat_id)
+        if text in channels:
+            channels.remove(text)
+            save_channels(chat_id, channels)
+            send_message(chat_id, f"✅ کانال {text} حذف شد.", keyboard=build_main_menu())
+        else:
+            send_message(chat_id, "⚠️ چنین کانالی پیدا نشد.", keyboard=build_main_menu())
+        USER_STATE[chat_id] = None
+
+    else:
+        send_message(chat_id, "❓ لطفاً یکی از گزینه‌های منو رو انتخاب کن.", keyboard=build_main_menu())
