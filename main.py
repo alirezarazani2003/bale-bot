@@ -12,6 +12,9 @@ USER_STATE = {}
 USER_LAST_REQUEST = defaultdict(lambda: 0)
 ALLOWED_USERS = os.getenv('ALLOWED_USER')
 
+def is_valid_channel_id(text):
+    return bool(re.match(r"^@\w{5,}$", text))
+
 def load_channels(chat_id):
     user_channels_file = f'{chat_id}_channels.json'
     if os.path.exists(user_channels_file):
