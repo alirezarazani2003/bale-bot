@@ -201,3 +201,18 @@ def get_updates(offset=None):
         return response.json()
     except:
         return {}
+    
+def main():
+    offset = None
+    while True:
+        try:
+            updates = get_updates(offset)
+            for update in updates.get('result', []):
+                handle_update(update)
+                offset = update['update_id'] + 1
+        except Exception as e:
+            print(f"[ERROR] {e}")
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()
