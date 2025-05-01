@@ -88,3 +88,11 @@ def forward_to_channels(message, chat_id):
             failed.append(f"{channel} ➔ {str(e)}")
 
     return success, failed
+
+
+def is_rate_limited(chat_id):
+    now = time.time()
+    if now - USER_LAST_REQUEST[chat_id] < 5:
+        return True
+    USER_LAST_REQUEST[chat_id] = now
+    return False
