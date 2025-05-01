@@ -49,3 +49,39 @@ def build_main_menu():
         "resize_keyboard": True,
         "one_time_keyboard": False
     }
+
+
+def forward_to_channels(message, chat_id):
+    channels = load_channels(chat_id)
+    success, failed = [], []
+    caption = message.get('caption', '')
+
+    for channel in channels:
+        try:
+            if 'text' in message:
+                resp = send_bale_request("sendMessage", {"chat_id": channel, "text": message['text']})
+            elif 'photo' in message:
+                file_id = message['photo'][-1]['file_id']
+                resp = send_bale_request("sendPhoto", {"chat_id": channel, "photo": file_id, "caption": caption})
+            elif 'document' in message:
+                file_id = message['document']['file_id']
+                resp = send_bale_request("sendDocument", {"chat_id": channel, "document": file_id, "caption": caption})
+            elif 'video' in message:
+                file_id = message['video']['file_id']
+                resp = send_bale_request("sendVideo", {"chat_id": channel, "video": file_id, "caption": caption})
+            elif 'voice' in message:
+                file_id = message['voice']['file_id']
+                resp = send_bale_request("sendVoice", {"chat_id": channel, "voice": file_id, "caption": caption})
+            else:
+                failed.append(f"{channel} ➔ نوع پیام پشتیبانی نمی‌شود")
+                continue
+
+            if resp.get('ok'):
+                success.append(channel)
+            else:
+                failed.append(f"{channel} ➔ {resp.get('description', 'خطای نامشخص')}")
+
+        except Exception as e:
+            failed.append(f"{channel} ➔ {str(e)}")
+
+    return success, failed
