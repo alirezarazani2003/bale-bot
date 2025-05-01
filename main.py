@@ -10,7 +10,11 @@ load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 USER_STATE = {}
 USER_LAST_REQUEST = defaultdict(lambda: 0)
-ALLOWED_USERS = os.getenv('ALLOWED_USER')
+
+def allowed_users_check(allowed: str):
+    return set(map(int, allowed.split(',')))
+
+ALLOWED_USERS = allowed_users_check(os.getenv('ALLOWED_USERS'))
 
 def is_valid_channel_id(text):
     return bool(re.match(r"^@\w{5,}$", text))
